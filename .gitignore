@@ -1,0 +1,19 @@
+# Chrome Profile & WhatsApp Web active session tokens
+chrome_profile/
+
+# Active campaign backups and lead datasets
+active_campaign_backup.csv
+*.csv
+*.xlsx
+*.xls
+*.json
+
+# Python cache & logs
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
