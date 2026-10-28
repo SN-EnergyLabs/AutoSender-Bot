@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SN Energy Labs | Whatsapp Auto Sender</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <meta name="theme-color" content="#F8FAFC">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=light7">
+</head>
+<body class="light-theme">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-logo-wrapper">
+          <img src="/static/logo.png" alt="SN Energy Labs Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>SN Energy Labs</h1>
+          <p>Whatsapp Auto Sender</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Live Engine Status Badge -->
+        <div class="status-pill status-idle" id="engineStatusPill">
+          <span class="status-dot"></span>
+          <span class="status-label" id="engineStatusText">Browser Offline</span>
+        </div>
+
+        <!-- Launch Chrome Button -->
+        <button id="btnLaunchBrowser" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="4"/>
+            <line x1="21.17" y1="8" x2="12" y2="8"/>
+            <line x1="3.95" y1="6.06" x2="8.54" y2="14"/>
+            <line x1="10.88" y1="21.94" x2="15.46" y2="14"/>
+          </svg>
+          Launch Visible Chrome
+        </button>
+
+        <button id="btnCloseBrowser" class="btn btn-outline-danger" title="Close Chrome">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-main">
+    <!-- QR Alert Banner (Hidden by default, shown when WAITING_QR) -->
+    <div id="qrAlertBanner" class="alert-banner alert-warning" style="display: none;">
+      <div class="alert-icon">📱</div>
+      <div class="alert-content">
+        <h4>WhatsApp QR Code Detected in Chrome!</h4>
+        <p>Google Chrome has opened on your screen. Please point your phone at the Chrome window and scan the QR code to link WhatsApp Web. The bot will automatically detect when you are logged in!</p>
+      </div>
+    </div>
+
+    <!-- Live Stats Overview -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total in Queue</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-sub" id="statValidSummary">0 valid numbers</div>
+      </div>
+      <div class="stat-card stat-success">
+        <div class="stat-label">Messages Sent</div>
+        <div class="stat-value" id="statSent">0</div>
+        <div class="stat-sub">Delivered via WhatsApp</div>
+      </div>
+      <div class="stat-card stat-pending">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value" id="statRemaining">0</div>
+        <div class="stat-sub" id="statProgressPercent">0% completed</div>
+      </div>
+      <div class="stat-card stat-danger">
+        <div class="stat-label">Failed / Not on WA</div>
+        <div class="stat-value" id="statFailed">0</div>
+        <div class="stat-sub" id="statFailedSub">0 skipped</div>
+      </div>
+      <div class="stat-card stat-timer">
+        <div class="stat-label">Cooldown Pacing</div>
+        <div class="stat-value timer-val" id="statCooldown">Idle</div>
+        <div class="stat-sub" id="statCooldownSub">Anti-spam human jitter</div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Split -->
+    <div class="workspace-grid">
+      <!-- LEFT COLUMN: Inputs & Template -->
+      <div class="workspace-col col-setup">
+        <!-- Card 1: Contact / Number Source -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-num">1</span>
+              <h3>WhatsApp Numbers Source</h3>
+            </div>
+            <div class="source-tabs">
+              <button class="tab-btn active" data-tab="tab-select-file">📁 Select File (Any Location)</button>
+              <button class="tab-btn" data-tab="tab-leads">🏢 Scraped Leads Folder</button>
+              <button class="tab-btn" data-tab="tab-paste">✍️ Paste Numbers</button>
+            </div>
+          </div>
+
+          <!-- Tab 1: Select CSV / Excel / JSON File from Computer or Path -->
+          <div class="tab-panel active" id="tab-select-file">
+            <div class="upload-dropzone" id="dropzone">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <p>Click to Browse or Drag & Drop ANY Lead File</p>
+              <span>Choose any CSV, Excel (.xlsx/.xls), or JSON file from your computer (Desktop, Downloads, Documents)</span>
+              <button type="button" class="btn btn-primary btn-sm mt-2" id="btnBrowseFile">
+                📁 Browse & Choose File
+              </button>
+              <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls, .json, .txt" style="display: none;">
+            </div>
+
+            <!-- Manual File Path Input Option -->
+            <div class="file-path-box mt-2">
+              <label for="customFilePathInput">Or paste / enter any file path on your Mac:</label>
+              <div class="select-wrapper">
+                <input type="text" id="customFilePathInput" class="form-control" placeholder="e.g. ~/Downloads/leads.csv, /Users/.../leads.xlsx, or relative path">
+                <button type="button" id="btnLoadCustomPath" class="btn btn-secondary btn-sm">Load File</button>
+              </div>
+            </div>
+
+            <!-- Loaded File Status Display -->
+            <div class="leads-info-row mt-2" id="selectedFileInfo" style="display: none;">
+              <span class="info-badge" id="selectedFileNameBadge">leads.csv</span>
+              <span class="info-badge" id="selectedFileCountBadge">0 Leads</span>
+              <span class="info-badge status-ready" id="selectedFileStatusBadge">✓ Ready in Queue</span>
+            </div>
+          </div>
+
+          <!-- Tab 2: Scraped Leads from Workspace Folder -->
+          <div class="tab-panel" id="tab-leads">
+            <div class="form-group">
+              <label for="selectLeadFile">Select from detected workspace exports:</label>
+              <div class="select-wrapper">
+                <select id="selectLeadFile" class="form-control">
+                  <option value="">Scanning for lead CSVs...</option>
+                </select>
+                <button id="btnRefreshFiles" class="btn btn-sm btn-outline" title="Refresh files list">🔄</button>
+              </div>
+            </div>
+            <div class="leads-info-row" id="leadFileInfo" style="display: none;">
+              <span class="info-badge" id="fileCountBadge">477 Leads</span>
+              <span class="info-badge" id="fileSizeBadge">206 KB</span>
+              <button id="btnLoadSelectedFile" class="btn btn-sm btn-primary">Import Into Queue</button>
+            </div>
+          </div>
+
+          <!-- Tab 3: Paste Numbers -->
+          <div class="tab-panel" id="tab-paste">
+            <div class="form-group">
+              <div class="label-row">
+                <label for="rawNumbersInput">Enter Numbers (One per line or Name, Number):</label>
+                <button id="btnInsertSample" class="btn-text">Insert Sample</button>
+              </div>
+              <textarea id="rawNumbersInput" class="form-control" rows="5" placeholder="Example:&#10;+91 98765 43210&#10;Dr. Sharma Dental, 098917 72753&#10;9210370993"></textarea>
+            </div>
+            <button id="btnParsePasted" class="btn btn-secondary btn-block">Parse & Add to Queue</button>
+          </div>
+
+          <!-- Common Country Code Setting -->
+          <div class="form-row-2 mt-3">
+            <div class="form-group">
+              <label for="defaultCountryCode">Default Country Code:</label>
+              <input type="text" id="defaultCountryCode" class="form-control" value="91" placeholder="91 (India)">
+            </div>
+            <div class="form-group">
+              <label for="dispatchModeSelect">Screen Control Flow:</label>
+              <select id="dispatchModeSelect" class="form-control">
+                <option value="new_chat" selected>🖱️ Click "New Chat" & Search (On-Screen)</option>
+                <option value="direct_url">🔗 Direct Chat URL (web.whatsapp.com/send)</option>
+                <option value="hybrid">⚡ Smart Hybrid (New Chat + URL Fallback)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Message Template -->
+        <div class="panel-card mt-3">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="panel-num">2</span>
+              <h3>Message Template & Personalization</h3>
+            </div>
+          </div>
+
+          <div class="template-variables">
+            <span class="var-tag" data-tag="{name}">+ {name}</span>
+            <span class="var-tag" data-tag="{category}">+ {category}</span>
+            <span class="var-tag" data-tag="{address}">+ {address}</span>
+            <span class="var-tag" data-tag="{rating}">+ {rating}</span>
+            <span class="var-tag" data-tag="{phone}">+ {phone}</span>
+            <span class="var-tag" data-tag="{website}">+ {website}</span>
+          </div>
+
+          <div class="form-group">
+            <textarea id="messageTemplate" class="form-control" rows="6">Hello {name},
+
+I came across your business at {address}. We help local {category} businesses get 10x more patient appointments with a modern website and WhatsApp booking.
+
+Can I share a quick 2-minute preview with you?</textarea>
+            <div class="char-count"><span id="charCount">0</span> characters</div>
+          </div>
+
+          <!-- Anti-Ban Delay Settings -->
+          <div class="pacing-box">
+            <div class="pacing-title">
+              <span>🛡️ Anti-Spam Human Pacing (Randomized Delay)</span>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Min Delay (Seconds):</label>
+                <input type="number" id="delayMin" class="form-control" value="7" min="3" max="60">
+              </div>
+              <div class="form-group">
+                <label>Max Delay (Seconds):</label>
+                <input type="number" id="delayMax" class="form-control" value="14" min="4" max="120">
+              </div>
+            </div>
+          </div>
+
+          <!-- WhatsApp Chat Preview -->
+          <div class="preview-box">
+            <div class="preview-header">
+              <span class="preview-title">Live WhatsApp Message Preview:</span>
+            </div>
+            <div class="whatsapp-bubble-container">
+              <div class="whatsapp-bubble" id="whatsappPreview">
+                <div class="bubble-text" id="previewText">Hello! Your message will preview here...</div>
+                <div class="bubble-meta">
+                  <span class="bubble-time">12:30 PM</span>
+                  <span class="bubble-ticks">✓✓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Campaign Controls, Queue Table & Live Logs -->
+      <div class="workspace-col col-actions">
+        <!-- Card 3: Execution Controls -->
+        <div class="panel-card campaign-control-card">
+          <div class="control-header">
+            <div class="current-action-display">
+              <div class="pulse-indicator" id="actionPulse"></div>
+              <div class="action-text">
+                <span class="action-headline" id="actionHeadline">Bot is ready to start.</span>
+                <span class="action-sub" id="actionSub">Click 'Start Sending' to control Chrome and send messages.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="campaign-actions-bar">
+            <button id="btnStartCampaign" class="btn btn-success btn-lg">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Start Sending Campaign
+            </button>
+
+            <button id="btnPauseCampaign" class="btn btn-warning" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+              </svg>
+              Pause
+            </button>
+
+            <button id="btnResumeCampaign" class="btn btn-info" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Resume
+            </button>
+
+            <button id="btnSkipCurrent" class="btn btn-secondary" disabled title="Skip current contact">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+              </svg>
+              Skip
+            </button>
+
+            <button id="btnStopCampaign" class="btn btn-danger" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 6h12v12H6z"/>
+              </svg>
+              Stop
+            </button>
+
+            <button id="btnRetryFailed" class="btn btn-warning" title="Reset failed contacts back to pending for retry">
+              🔁 Retry Failed (<span id="btnRetryFailedCount">0</span>)
+            </button>
+
+            <button id="btnExportCSV" class="btn btn-outline" title="Export Results CSV">
+              📥 Export CSV
+            </button>
+          </div>
+
+          <!-- Overall Progress Bar -->
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="campaignProgressFill" style="width: 0%;"></div>
+            </div>
+            <div class="progress-bar-labels">
+              <span id="progressSummaryText">0 / 0 dispatched</span>
+              <span id="progressPercentText">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Live Queue Table -->
+        <div class="panel-card mt-3">
+          <div class="panel-header queue-header">
+            <h3>Dispatched Queue</h3>
+            <div class="queue-filters">
+              <button class="filter-btn active" data-filter="all">All (<span id="filterAllCount">0</span>)</button>
+              <button class="filter-btn" data-filter="pending">Pending (<span id="filterPendingCount">0</span>)</button>
+              <button class="filter-btn" data-filter="sent">Sent (<span id="filterSentCount">0</span>)</button>
+              <button class="filter-btn" data-filter="failed">Failed (<span id="filterFailedCount">0</span>)</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table" id="queueTable">
+              <thead>
+                <tr>
+                  <th width="40">#</th>
+                  <th>Name / Business</th>
+                  <th>WhatsApp Number</th>
+                  <th>Category / Note</th>
+                  <th width="120">Status</th>
+                  <th width="100">Time</th>
+                </tr>
+              </thead>
+              <tbody id="queueTableBody">
+                <tr class="empty-row">
+                  <td colspan="6">No numbers in queue. Import scraped leads or paste numbers above.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <img src="/static/logo.png" alt="SN Energy Labs Logo" class="footer-logo-img">
+        <span>Created by <a href="https://snenergylabs.space" target="_blank" rel="noopener noreferrer">snenergylabs.space</a></span>
+      </div>
+      <div class="footer-copy">
+        <span>&copy; 2026 SN Energy Labs &bull; Autonomous Screen Automation Engine</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/app.js?v=light7"></script>
+</body>
+</html>
